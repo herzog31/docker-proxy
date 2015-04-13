@@ -1,3 +1,10 @@
+'''
+Docker Proxy
+Container Monitor
+
+@author Mark J. Becker <mjb@marb.ec>
+'''
+
 import os
 from threading import Thread
 from docker import Client
@@ -6,7 +13,7 @@ import json
 
 sockUrl = "unix:///var/run/docker.sock"
 templateFile = "nginx.conf.tpl"
-targetFile = "/etc/nginx/nginx.conf"
+targetFile = "/etc/nginx/conf.d/default.conf"
 
 class MonitorThread(Thread):
     def __init__(self, app, sock):
