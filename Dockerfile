@@ -32,7 +32,7 @@ RUN pip install -r requirements.txt
 
 COPY . /usr/src/app
 
-ENV PROXY_BASE_URL="docker.marb.ec"
+ENV PROXY_BASE_URL="example.org"
 
 # Start supervisor
 

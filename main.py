@@ -73,6 +73,6 @@ class App():
         print("nginx releaded")
 
 if __name__ == "__main__":
-    baseUrl = os.getenv("PROXY_BASE_URL", "marb.ec")
+    baseUrl = os.getenv("PROXY_BASE_URL", "example.org")
     app = App(sockUrl, baseUrl, templateFile, targetFile)
     app.updateProxy()
