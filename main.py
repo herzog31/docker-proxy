@@ -1,9 +1,12 @@
 import os
 from threading import Thread
 from docker import Client
+from jinja2 import Template, Environment, FileSystemLoader
 import json
 
 sockUrl = "unix:///var/run/docker.sock"
+templateFile = "nginx.conf.tpl"
+targetFile = "nginx.conf"
 
 class MonitorThread(Thread):
     def __init__(self, app, sock):
@@ -25,13 +28,18 @@ class MonitorThread(Thread):
 
 class App():
 
-    def __init__(self, sock, baseUrl):
+    def __init__(self, sock, baseUrl, templateFile, targetFile):
         self.sock = sock
+        self.proxy = []
+        self.target = targetFile
         self.baseUrl = baseUrl
         self.cli = Client(base_url=self.sock)
         self.monitor = MonitorThread(self, sockUrl).start()
+        self.jinjaenv = Environment(loader=FileSystemLoader('.'))
+        self.template = self.jinjaenv.get_template(templateFile)
 
     def updateProxy(self):
+        self.proxy = []
         for container in self.cli.containers(all=True):
             ports = container.get("Ports")
             publicPort = None
@@ -41,8 +49,16 @@ class App():
             if publicPort is not None:
                 name = container.get("Names")[0]
                 name = name.replace('/', '')
-                print("Container with name " + name + " is reachable at port " + str(publicPort) + " -> http://" + name + "." + self.baseUrl + "/")
+                self.proxy.append({"name": name, "port": publicPort, "hostname": name + "." + self.baseUrl})
+        if len(self.proxy) > 0:
+            self.writeTemplate()
+
+    def writeTemplate(self):
+        for prox in self.proxy:
+            print(prox)
+            print("Container with name " + prox.get("name") + " is reachable at port " + str(prox.get("port")) + " -> " + prox.get("hostname"))
+        print(self.template.render(containers=self.proxy))
 
 if __name__ == "__main__":
     baseUrl = os.getenv("PROXY_BASE_URL", "marb.ec")
-    app = App(sockUrl, baseUrl)
+    app = App(sockUrl, baseUrl, templateFile, targetFile)
