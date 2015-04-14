@@ -1,4 +1,4 @@
-# Docker Proxy - nginx config
+# Docker Proxy - NGINX Config Template
 # by Mark J. Becker
 
 server {
@@ -13,7 +13,7 @@ upstream {{ container.name }} {
 }
 
 server {
-	listen 80;
+	listen {{ container.publicIp }};
 	access_log /usr/src/app/access.log;
 	server_name {{ container.hostname }};
 
