@@ -20,8 +20,6 @@ RUN ln -sf /dev/stderr /var/log/nginx/error.log
 
 VOLUME ["/var/cache/nginx"]
 
-EXPOSE 80 443
-
 # Python app
 
 RUN mkdir -p /usr/src/app
@@ -32,7 +30,12 @@ RUN pip install -r requirements.txt
 
 COPY . /usr/src/app
 
+# Setup proxy variables
+
 ENV PROXY_BASE_URL="example.org"
+ENV PROXY_PORT=80
+
+EXPOSE $PROXY_PORT
 
 # Start supervisor
 

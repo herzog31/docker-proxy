@@ -2,7 +2,7 @@
 # by Mark J. Becker
 
 server {
-	listen 80 default_server;
+	listen {{ proxyPort }} default_server;
 	server_name _;
 	return 404;
 }
@@ -13,7 +13,7 @@ upstream {{ container.name }} {
 }
 
 server {
-	listen {{ container.publicIp }};
+	listen {{ proxyPort }};
 	access_log /usr/src/app/access.log;
 	server_name {{ container.hostname }};
 

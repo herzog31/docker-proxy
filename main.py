@@ -19,6 +19,8 @@ templateFile = "nginx.conf.tpl"
 targetFile = "/etc/nginx/conf.d/default.conf"
 # Default base url
 defaultBaseUrl = "example.org"
+# Default proxy port
+defaultProxyPort = "80"
 
 class MonitorThread(Thread):
     def __init__(self, app, sock):
@@ -40,11 +42,12 @@ class MonitorThread(Thread):
 
 class App():
 
-    def __init__(self, sock, baseUrl, templateFile, targetFile):
+    def __init__(self, sock, baseUrl, templateFile, targetFile, proxyPort):
         self.sock = sock
         self.proxy = []
         self.target = targetFile
         self.baseUrl = baseUrl
+        self.proxyPort = proxyPort
         self.cli = Client(base_url=self.sock)
         self.monitor = MonitorThread(self, sockUrl).start()
         self.jinjaenv = Environment(loader=FileSystemLoader('.'), trim_blocks=True)
@@ -83,7 +86,7 @@ class App():
     def writeTemplate(self):
         # Render and write template
         with open(self.target, "w+") as f:
-            f.write(self.template.render(containers=self.proxy))
+            f.write(self.template.render(containers=self.proxy, proxyPort=self.proxyPort))
             print("nginx config file updated")
         # Perform nginx reload
         os.system("nginx -s reload")
@@ -92,6 +95,7 @@ class App():
 if __name__ == "__main__":
     # Get base url from environment
     baseUrl = os.getenv("PROXY_BASE_URL", defaultBaseUrl)
-    app = App(sockUrl, baseUrl, templateFile, targetFile)
+    proxyPort = os.getenv("PROXY_PORT", defaultProxyPort)
+    app = App(sockUrl, baseUrl, templateFile, targetFile, proxyPort)
     # write initial template file
     app.updateProxy()
