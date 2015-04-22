@@ -21,13 +21,16 @@ targetFile = "/etc/nginx/conf.d/default.conf"
 defaultBaseUrl = "example.org"
 # Default proxy port
 defaultProxyPort = "80"
+# Events that trigger template creation
+dockerEvents = ['create', 'destroy']
 
 class MonitorThread(Thread):
-    def __init__(self, app, sock):
+    def __init__(self, app, sock, dockerEvents):
         super(MonitorThread, self).__init__()
 
         self.app = app
         self.sock = sock
+        self.dockerEvents = dockerEvents
         self.cli = Client(base_url=self.sock)
 
     def run(self):
@@ -35,21 +38,22 @@ class MonitorThread(Thread):
         for event in self.cli.events():
             event = json.loads(event.decode('utf-8'))
             print(json.dumps(event, indent=4))
-            self.app.updateProxy()
+            if event.get("status") in self.dockerEvents:
+                self.app.updateProxy()
 
     def stop(self):
         self.cli.close()
 
 class App():
 
-    def __init__(self, sock, baseUrl, templateFile, targetFile, proxyPort):
+    def __init__(self, sock, baseUrl, templateFile, targetFile, proxyPort, dockerEvents):
         self.sock = sock
         self.proxy = []
         self.target = targetFile
         self.baseUrl = baseUrl
         self.proxyPort = proxyPort
         self.cli = Client(base_url=self.sock)
-        self.monitor = MonitorThread(self, sockUrl).start()
+        self.monitor = MonitorThread(self, sockUrl, dockerEvents).start()
         self.jinjaenv = Environment(loader=FileSystemLoader('.'), trim_blocks=True)
         self.template = self.jinjaenv.get_template(templateFile)
 
@@ -96,6 +100,6 @@ if __name__ == "__main__":
     # Get base url from environment
     baseUrl = os.getenv("PROXY_BASE_URL", defaultBaseUrl)
     proxyPort = os.getenv("PROXY_PORT", defaultProxyPort)
-    app = App(sockUrl, baseUrl, templateFile, targetFile, proxyPort)
+    app = App(sockUrl, baseUrl, templateFile, targetFile, proxyPort, dockerEvents)
     # write initial template file
     app.updateProxy()
