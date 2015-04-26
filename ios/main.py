@@ -58,13 +58,13 @@ class App():
         self.ownHostname = os.getenv("HOSTNAME", "false")
         self.portRangeFrom = int(portRange.split("-")[0])
         self.portRangeTo = int(portRange.split("-")[1])
-        self.portMappings = {}
 
     def updateProxy(self):
         # Reset all proxies
         self.proxy = []
-        for container in self.cli.containers(all=True):
+        self.portMappings = {}
 
+        for container in self.cli.containers(all=True):
             # Skip itself
             if container.get("Id").startswith(self.ownHostname): continue
 
