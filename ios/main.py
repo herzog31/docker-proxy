@@ -13,14 +13,16 @@ import json
 
 # Docker API location
 sockUrl = "unix:///var/run/docker.sock"
-# Jinja2 template file location
-templateFile = "nginx.conf.tpl"
+# Jinja2 template file location and destination
+templateFiles = [("nginx.conf.tpl", "/etc/nginx/conf.d/default.conf"), ("index.tpl", "/usr/share/nginx/html/index.html")]
 # Written template save location
-targetFile = "/etc/nginx/conf.d/default.conf"
+# targetFile = "/etc/nginx/conf.d/default.conf"
 # Default base url
 defaultBaseUrl = "example.org"
 # Events that trigger template creation
 dockerEvents = ['start', 'destroy']
+# Default port range
+defaultPortRange = "80-200"
 
 class MonitorThread(Thread):
     def __init__(self, app, sock, dockerEvents):
@@ -43,16 +45,20 @@ class MonitorThread(Thread):
 
 class App():
 
-    def __init__(self, sock, baseUrl, templateFile, targetFile, dockerEvents):
+    def __init__(self, sock, baseUrl, templateFiles, dockerEvents, portRange):
         self.sock = sock
         self.proxy = []
-        self.target = targetFile
+        # self.target = targetFile
         self.baseUrl = baseUrl
         self.cli = Client(base_url=self.sock)
         self.monitor = MonitorThread(self, sockUrl, dockerEvents).start()
         self.jinjaenv = Environment(loader=FileSystemLoader('.'), trim_blocks=True)
-        self.template = self.jinjaenv.get_template(templateFile)
+        self.templateFiles = templateFiles
+        # self.template = self.jinjaenv.get_template(templateFile)
         self.ownHostname = os.getenv("HOSTNAME", "false")
+        self.portRangeFrom = int(portRange.split("-")[0])
+        self.portRangeTo = int(portRange.split("-")[1])
+        self.portMappings = {}
 
     def updateProxy(self):
         # Reset all proxies
@@ -62,46 +68,59 @@ class App():
             # Skip itself
             if container.get("Id").startswith(self.ownHostname): continue
 
-            # Get first public facing port
-            ports = container.get("Ports")
-            publicPort = None
-            privatePort = None
-            for port in ports:
-                if "PublicPort" in port:
-                    publicPort = port.get("PublicPort")
-                    privatePort = port.get("PrivatePort")
-                    break
-            if publicPort is None: continue
-            
             # Get container name
-            name = container.get("Names")[0]
-            name = name.replace('/', '')
+            fullname = container.get("Names")[0]
+            name = fullname.replace('/', '')
             # Get project name part of container name
             name = name.split('_')[0]
 
             # Get containers private ip
             ip = self.cli.inspect_container(container=container.get("Id")).get("NetworkSettings").get("IPAddress")
 
-            # Add container to proxy list
-            self.proxy.append({"name": name, "publicPort": publicPort, "privatePort": privatePort, "hostname": name + "." + self.baseUrl, "privateIp": ip})
+            # Get all public facing ports
+            ports = container.get("Ports")
+            publicPorts = []
+            for port in ports:
+                if "PublicPort" in port:
+                    publicPorts.append((int(port.get("PublicPort")), int(port.get("PrivatePort"))))
+
+            # Sort
+            publicPorts = sorted(publicPorts, key=lambda ports: ports[1])
+
+            for port in publicPorts:
+                # Find mapping port
+                if name in self.portMappings:
+                    self.portMappings[name] = self.portMappings[name] + 1
+                else:
+                    self.portMappings[name] = self.portRangeFrom
+
+                mapPort = self.portMappings[name]
+
+                # Skip container if mapping port range is exceeded
+                if mapPort > self.portRangeTo: break
+
+                # Add container to proxy list
+                self.proxy.append({"name": name, "fullname": fullname, "publicPort": port[0], "privatePort": port[1], "mapPort": mapPort, "hostname": name + "." + self.baseUrl, "privateIp": ip})
         
         # Rewrite template file
         self.writeTemplate()
 
     def writeTemplate(self):
-        # Render and write template
-        with open(self.target, "w+") as f:
-            f.write(self.template.render(containers=self.proxy))
-            print("nginx config file updated")
+        # Render and write templates
+        for template in self.templateFiles:
+            with open(template[1], "w+") as f:
+                tplFile = self.jinjaenv.get_template(template[0])
+                f.write(tplFile.render(containers=self.proxy, baseUrl=self.baseUrl))
 
         # Perform nginx reload
         os.system("nginx -s reload")
-        print("nginx reloaded")
+        print("Templates updated and nginx reloaded!")
 
 if __name__ == "__main__":
     # Get base url from environment
     baseUrl = os.getenv("PROXY_BASE_URL", defaultBaseUrl)
-    app = App(sockUrl, baseUrl, templateFile, targetFile, dockerEvents)
+    portRange = os.getenv("PROXY_PORT_RANGE", defaultPortRange)
+    app = App(sockUrl, baseUrl, templateFiles, dockerEvents, portRange)
 
     # write initial template file
     app.updateProxy()

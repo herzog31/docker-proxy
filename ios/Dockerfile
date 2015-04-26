@@ -33,9 +33,9 @@ COPY . /usr/src/app
 # Setup proxy variables
 
 ENV PROXY_BASE_URL="example.org"
-ENV PROXY_PORT=80
+ENV PROXY_PORT_RANGE="80-200"
 
-EXPOSE $PROXY_PORT
+EXPOSE $PROXY_PORT_RANGE
 
 # Start supervisor
 
