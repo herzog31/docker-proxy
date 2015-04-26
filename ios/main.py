@@ -19,8 +19,6 @@ templateFile = "nginx.conf.tpl"
 targetFile = "/etc/nginx/conf.d/default.conf"
 # Default base url
 defaultBaseUrl = "example.org"
-# Default proxy port
-defaultProxyPort = "80"
 # Events that trigger template creation
 dockerEvents = ['start', 'destroy']
 
@@ -45,12 +43,11 @@ class MonitorThread(Thread):
 
 class App():
 
-    def __init__(self, sock, baseUrl, templateFile, targetFile, proxyPort, dockerEvents):
+    def __init__(self, sock, baseUrl, templateFile, targetFile, dockerEvents):
         self.sock = sock
         self.proxy = []
         self.target = targetFile
         self.baseUrl = baseUrl
-        self.proxyPort = proxyPort
         self.cli = Client(base_url=self.sock)
         self.monitor = MonitorThread(self, sockUrl, dockerEvents).start()
         self.jinjaenv = Environment(loader=FileSystemLoader('.'), trim_blocks=True)
@@ -79,6 +76,8 @@ class App():
             # Get container name
             name = container.get("Names")[0]
             name = name.replace('/', '')
+            # Get project name part of container name
+            name = name.split('_')[0]
 
             # Get containers private ip
             ip = self.cli.inspect_container(container=container.get("Id")).get("NetworkSettings").get("IPAddress")
@@ -92,7 +91,7 @@ class App():
     def writeTemplate(self):
         # Render and write template
         with open(self.target, "w+") as f:
-            f.write(self.template.render(containers=self.proxy, proxyPort=self.proxyPort))
+            f.write(self.template.render(containers=self.proxy))
             print("nginx config file updated")
 
         # Perform nginx reload
@@ -102,8 +101,7 @@ class App():
 if __name__ == "__main__":
     # Get base url from environment
     baseUrl = os.getenv("PROXY_BASE_URL", defaultBaseUrl)
-    proxyPort = os.getenv("PROXY_PORT", defaultProxyPort)
-    app = App(sockUrl, baseUrl, templateFile, targetFile, proxyPort, dockerEvents)
+    app = App(sockUrl, baseUrl, templateFile, targetFile, dockerEvents)
 
     # write initial template file
     app.updateProxy()

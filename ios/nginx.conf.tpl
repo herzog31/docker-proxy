@@ -6,7 +6,7 @@ proxy_set_header 		X-Forwarded-For 	$remote_addr;
 proxy_set_header 		Host 				$host;
 
 server {
-	listen {{ proxyPort }} default_server;
+	listen 80 default_server;
 	server_name _;
 	return 404;
 }
@@ -17,7 +17,7 @@ upstream {{ container.name }} {
 }
 
 server {
-	listen {{ proxyPort }};
+	listen {{ container.privatePort }};
 	access_log /usr/src/app/{{ container.name }}_access.log;
 	server_name {{ container.hostname }};
 
