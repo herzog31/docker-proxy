@@ -54,7 +54,6 @@ class App():
         self.monitor = MonitorThread(self, sockUrl, dockerEvents).start()
         self.jinjaenv = Environment(loader=FileSystemLoader('.'), trim_blocks=True)
         self.templateFiles = templateFiles
-        # self.template = self.jinjaenv.get_template(templateFile)
         self.ownHostname = os.getenv("HOSTNAME", "false")
         self.portRangeFrom = int(portRange.split("-")[0])
         self.portRangeTo = int(portRange.split("-")[1])
@@ -65,8 +64,11 @@ class App():
         self.portMappings = {}
 
         for container in self.cli.containers(all=True):
+
+            containerId = container.get("Id")
+
             # Skip itself
-            if container.get("Id").startswith(self.ownHostname): continue
+            if containerId.startswith(self.ownHostname): continue
 
             # Get container name
             fullname = container.get("Names")[0]
@@ -75,7 +77,11 @@ class App():
             name = name.split('_')[0]
 
             # Get containers private ip
-            ip = self.cli.inspect_container(container=container.get("Id")).get("NetworkSettings").get("IPAddress")
+            try:
+                inspect = self.cli.inspect_container(container=containerId)
+                ip = inspect.get("NetworkSettings").get("IPAddress")
+            except:
+                continue
 
             # Get all public facing ports
             ports = container.get("Ports")
