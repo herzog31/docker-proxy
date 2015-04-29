@@ -65,6 +65,7 @@ class App():
 
         for container in self.cli.containers(all=True):
 
+            # Get container ID
             containerId = container.get("Id")
 
             # Skip itself

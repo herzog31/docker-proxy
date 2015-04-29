@@ -62,8 +62,11 @@ class App():
         self.proxy = []
         for container in self.cli.containers(all=True):
 
+            # Get container ID
+            containerId = container.get("Id")
+
             # Skip itself
-            if container.get("Id").startswith(self.ownHostname): continue
+            if containerId.startswith(self.ownHostname): continue
 
             # Get first public facing port
             ports = container.get("Ports")
@@ -81,7 +84,11 @@ class App():
             name = name.replace('/', '')
 
             # Get containers private ip
-            ip = self.cli.inspect_container(container=container.get("Id")).get("NetworkSettings").get("IPAddress")
+            try:
+                inspect = self.cli.inspect_container(container=containerId)
+                ip = inspect.get("NetworkSettings").get("IPAddress")
+            except:
+                continue
 
             # Add container to proxy list
             self.proxy.append({"name": name, "publicPort": publicPort, "privatePort": privatePort, "hostname": name + "." + self.baseUrl, "privateIp": ip})
