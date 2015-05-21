@@ -22,6 +22,7 @@ server {
 	listen {{ container.mapPort }};
 	access_log /usr/src/app/{{ container.name }}_access.log;
 	server_name {{ container.hostname }};
+	client_max_body_size 100M;
 
 	location / {
 		proxy_pass http://{{ container.name }}_{{ container.privatePort }};
