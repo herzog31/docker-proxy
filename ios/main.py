@@ -73,9 +73,9 @@ class App():
 
             # Get container name
             fullname = container.get("Names")[0]
-            name = fullname.replace('/', '')
+            fullname = fullname.replace('/', '')
             # Get project name part of container name
-            name = name.split('_')[0]
+            name = fullname.split('_')[0]
 
             # Get containers private ip
             try:
