@@ -14,18 +14,18 @@ server {
 }
 
 {% for container in containers %}
-upstream {{ container.name }}_{{ container.privatePort }} {
+upstream {{ container.fullname }}_{{ container.privatePort }} {
 	server {{container.privateIp}}:{{ container.privatePort }};
 }
 
 server {
 	listen {{ container.mapPort }};
-	access_log /usr/src/app/{{ container.name }}_access.log;
+	access_log /usr/src/app/{{ container.fullname }}_access.log;
 	server_name {{ container.hostname }};
 	client_max_body_size 100M;
 
 	location / {
-		proxy_pass http://{{ container.name }}_{{ container.privatePort }};
+		proxy_pass http://{{ container.fullname }}_{{ container.privatePort }};
 	}
 }
 
