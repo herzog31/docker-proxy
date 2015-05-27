@@ -2,6 +2,7 @@
 
 -	[`regular`, `latest` (*Dockerfile*)](https://github.com/herzog31/docker-proxy/blob/master/regular/Dockerfile)
 -	[`ios` (*Dockerfile*)](https://github.com/herzog31/docker-proxy/blob/master/ios/Dockerfile)
+-	[`ios-pers` (*Dockerfile*)](https://github.com/herzog31/docker-proxy/blob/master/ios-pers/Dockerfile)
 
 # docker-proxy
 Nginx proxy that maps containers to subdomains.
@@ -15,6 +16,8 @@ Use the `regular` tagged version to map docker containers to subdomains by their
 Use the `ios` tagged version for the setup used in the iOS Praktikum at TUM to map container compositions to the composition prefix.
 
 **Example:** Containers from a docker composition `liquid_node_1` and `liquid_db_1` are mapped to `liquid.example.org`. The container's private ports are mapped to the new subdomain if a public mapping exists, respecting docker-proxy's published port range. So the first public port of `liquid_node_1` is available at `liquid.example.org:80`, the second at `liquid.example.org:81` etc.
+
+The `ios-pers` tagged version makes port mappings persistent, so they stay the same after adding or removing containers.
 
 ---
 
@@ -32,7 +35,7 @@ docker run -it --rm --name docker-proxy -p 80:80 -v /var/run/docker.sock:/var/ru
 ### iOS Version
 
 ```
-docker run -it --rm --name docker-proxy -p 80-200:80-200 -v /var/run/docker.sock:/var/run/docker.sock -e PROXY_PORT_RANGE=80-200 -e PROXY_BASE_URL=example.org herzog31/docker-proxy:ios
+docker run -it --rm --name docker-proxy -p 80-100:80-100 -v /var/run/docker.sock:/var/run/docker.sock -e PROXY_PORT_RANGE=80-100 -e PROXY_BASE_URL=example.org herzog31/docker-proxy:ios
 ```
 
 Replace `example.org` with the desired hostname and configure your DNS accordingly.
@@ -50,7 +53,7 @@ docker run -d --name docker-proxy --restart=always -p 80:80 -v /var/run/docker.s
 ### iOS Version
 
 ```
-docker run -d --name docker-proxy --restart=always -p 80-200:80-200 -v /var/run/docker.sock:/var/run/docker.sock -e PROXY_PORT_RANGE=80-200 -e PROXY_BASE_URL=example.org herzog31/docker-proxy:ios
+docker run -d --name docker-proxy --restart=always -p 80-100:80-100 -v /var/run/docker.sock:/var/run/docker.sock -e PROXY_PORT_RANGE=80-100 -e PROXY_BASE_URL=example.org herzog31/docker-proxy:ios
 ```
 
 ## Port Mappings Overview
