@@ -22,7 +22,7 @@ defaultBaseUrl = "example.org"
 # Events that trigger template creation
 dockerEvents = ['start', 'destroy']
 # Default port range
-defaultPortRange = "80-200"
+defaultPortRange = "80-100"
 
 class MonitorThread(Thread):
     def __init__(self, app, sock, dockerEvents):
